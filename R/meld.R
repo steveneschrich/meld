@@ -22,7 +22,7 @@
 #' c("A","B","C") %^% c("A",NA,"C")
 #' # [1] "A" "B" "C"
 #' }
-vec_meld <- function(a,b) {
+vec_meld <- function(a, b) {
   if (! all(a %==% b) ) {
     msg <- "Fields in comparison are not equivalent, cannot combine correctly."
     stop(msg)
@@ -42,6 +42,8 @@ vec_meld <- function(a,b) {
 #'   results from melding the two old variables (`old1` and `old2`). List of old variables can be
 #'   more than 2.
 #' @param remove Logical, should the original variables be removed from the data frame (default is TRUE).
+#' @param drop Logical. Should mismatched pairs be dropped (changes number of rows)? Otherwise,
+#' a warning is printed.
 #'
 #' @return A data frame with the old variables melded into new variables and old variables removed (assuming
 #' `remove=TRUE`).
@@ -56,7 +58,7 @@ vec_meld <- function(a,b) {
 #' # 1   1
 #' # 2   2
 #' # 3   3
-meld <- function(x, ..., remove = TRUE) {
+meld <- function(x, ..., remove = TRUE, drop = FALSE) {
 
   # The input can be a series of newname = c(oldvalue1, oldvalue2).
   fields <- rlang::list2(...)
@@ -72,9 +74,17 @@ meld <- function(x, ..., remove = TRUE) {
     # Then combine all of the other old variable names
     for ( ov in 2:length(old_vars) ) {
       # Provide specific warning if field cannot be combined.
-      if (! all(x[[new_var]] %==% x[[old_vars[ov]]]))
-        stop(glue::glue("Fields are not equivalent so cannot combine correctly: {new_var}, {old_vars[ov]}."))
-
+      equivalent <- x[[new_var]] %==% x[[old_vars[ov]]]
+      if (! all(equivalent)) {
+        msg <- glue::glue("Fields are not equivalent so cannot combine correctly: {new_var}, {old_vars[ov]}.")
+        if ( drop ) {
+          warning(msg,"\n  Dropping mismatched rows (drop = TRUE).")
+          x <- dplyr::filter(x, equivalent)
+        } else {
+          stop(msg)
+        }
+      }
+      # Meld the two columns together.
       x <- dplyr::mutate(x, {{ new_var }} := .data[[new_var]] %^% .data[[old_vars[ov]]])
       if ( remove )
         x <- dplyr::select(x, -.data[[old_vars[ov]]])

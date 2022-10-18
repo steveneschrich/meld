@@ -4,7 +4,7 @@
 \alias{meld}
 \title{Meld variables in data frame}
 \usage{
-meld(x, ..., remove = TRUE)
+meld(x, ..., remove = TRUE, drop = FALSE)
 }
 \arguments{
 \item{x}{A data frame to operate on.}
@@ -14,6 +14,9 @@ results from melding the two old variables (\code{old1} and \code{old2}). List o
 more than 2.}
 
 \item{remove}{Logical, should the original variables be removed from the data frame (default is TRUE).}
+
+\item{drop}{Logical. Should mismatched pairs be dropped (changes number of rows)? Otherwise,
+a warning is printed.}
 }
 \value{
 A data frame with the old variables melded into new variables and old variables removed (assuming
