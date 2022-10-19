@@ -68,8 +68,11 @@ meld <- function(x, ..., remove = TRUE, drop = FALSE) {
     new_var <- f
     old_vars <- intersect(fields[[f]], colnames(x))
 
-    # To accommodate any number of old variables, we rename the first one (if it works, TODO)
-    x<-dplyr::rename(x, {{ new_var }} := .data[[old_vars[1]]])
+    # To accommodate any number of old variables, we rename the first one
+    # Often, it may be a = a if we are coalescing a list. But that does work.
+    if ( length(old_vars) > 0 ) {
+      x<-dplyr::rename(x, {{ new_var }} := .data[[old_vars[1]]])
+    }
 
     if ( length(old_vars) > 1) {
 
