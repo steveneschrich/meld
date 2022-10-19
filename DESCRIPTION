@@ -1,6 +1,6 @@
 Package: meld
 Title: Coalesce Data Columns Except When Unequal
-Version: 0.3.0
+Version: 0.3.1
 Authors@R: 
     person("Steven", "Eschrich", , "Steven.Eschrich@moffitt.org", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
