@@ -66,28 +66,31 @@ meld <- function(x, ..., remove = TRUE, drop = FALSE) {
   # Fuse each new field (names)
   for (f in names(fields)) {
     new_var <- f
-    old_vars <- fields[[f]]
+    old_vars <- intersect(fields[[f]], colnames(x))
 
     # To accommodate any number of old variables, we rename the first one (if it works, TODO)
     x<-dplyr::rename(x, {{ new_var }} := .data[[old_vars[1]]])
 
-    # Then combine all of the other old variable names
-    for ( ov in 2:length(old_vars) ) {
-      # Provide specific warning if field cannot be combined.
-      equivalent <- x[[new_var]] %==% x[[old_vars[ov]]]
-      if (! all(equivalent)) {
-        msg <- glue::glue("Fields are not equivalent so cannot combine correctly: {new_var}, {old_vars[ov]}.")
-        if ( drop ) {
-          warning(msg,"\n  Dropping mismatched rows (drop = TRUE).")
-          x <- dplyr::filter(x, equivalent)
-        } else {
-          stop(msg)
+    if ( length(old_vars) > 1) {
+
+      # Then combine all of the other old variable names
+      for ( ov in 2:length(old_vars) ) {
+        # Provide specific warning if field cannot be combined.
+        equivalent <- x[[new_var]] %==% x[[old_vars[ov]]]
+        if (! all(equivalent)) {
+          msg <- glue::glue("Fields are not equivalent so cannot combine correctly: {new_var}, {old_vars[ov]}.")
+          if ( drop ) {
+            warning(msg,"\n  Dropping mismatched rows (drop = TRUE).")
+            x <- dplyr::filter(x, equivalent)
+          } else {
+            stop(msg)
+          }
         }
+        # Meld the two columns together.
+        x <- dplyr::mutate(x, {{ new_var }} := .data[[new_var]] %^% .data[[old_vars[ov]]])
+        if ( remove )
+          x <- dplyr::select(x, -.data[[old_vars[ov]]])
       }
-      # Meld the two columns together.
-      x <- dplyr::mutate(x, {{ new_var }} := .data[[new_var]] %^% .data[[old_vars[ov]]])
-      if ( remove )
-        x <- dplyr::select(x, -.data[[old_vars[ov]]])
     }
   }
 
