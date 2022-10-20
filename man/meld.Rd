@@ -4,7 +4,7 @@
 \alias{meld}
 \title{Meld variables in data frame}
 \usage{
-meld(x, ..., remove = TRUE, drop = FALSE)
+meld(x, ..., remove = TRUE, drop = FALSE, coalesce = FALSE)
 }
 \arguments{
 \item{x}{A data frame to operate on.}
@@ -17,6 +17,9 @@ more than 2.}
 
 \item{drop}{Logical. Should mismatched pairs be dropped (changes number of rows)? Otherwise,
 a warning is printed.}
+
+\item{coalesce}{Logical. Should the coalesce approach (select the first non-NA) be used? The
+function will warn if there are unequal values, but use the first non-NA.}
 }
 \value{
 A data frame with the old variables melded into new variables and old variables removed (assuming

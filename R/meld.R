@@ -13,6 +13,8 @@
 #'
 #' @param a Vector to meld
 #' @param b Vector to meld
+#' @param coalesce Logical. Should the coalesce approach (select the first non-NA) be used? The
+#' function will warn if there are unequal values, but use the first non-NA.
 #'
 #' @return A vector melding a and b (see [dplyr::coalesce()]).
 #' @export
@@ -22,10 +24,12 @@
 #' c("A","B","C") %^% c("A",NA,"C")
 #' # [1] "A" "B" "C"
 #' }
-vec_meld <- function(a, b) {
+vec_meld <- function(a, b, coalesce=FALSE) {
   if (! all(a %==% b) ) {
     msg <- "Fields in comparison are not equivalent, cannot combine correctly."
-    stop(msg)
+    logger::log_warn(msg)
+    if ( !coalesce )
+      stop(msg)
   }
   # Merging involves picking the non-NA value (or using NA)
   dplyr::coalesce(a,b)
@@ -44,7 +48,8 @@ vec_meld <- function(a, b) {
 #' @param remove Logical, should the original variables be removed from the data frame (default is TRUE).
 #' @param drop Logical. Should mismatched pairs be dropped (changes number of rows)? Otherwise,
 #' a warning is printed.
-#'
+#' @param coalesce Logical. Should the coalesce approach (select the first non-NA) be used? The
+#' function will warn if there are unequal values, but use the first non-NA.
 #' @return A data frame with the old variables melded into new variables and old variables removed (assuming
 #' `remove=TRUE`).
 #' @export
@@ -58,7 +63,7 @@ vec_meld <- function(a, b) {
 #' # 1   1
 #' # 2   2
 #' # 3   3
-meld <- function(x, ..., remove = TRUE, drop = FALSE) {
+meld <- function(x, ..., remove = TRUE, drop = FALSE, coalesce=FALSE) {
 
   # The input can be a series of newname = c(oldvalue1, oldvalue2).
   fields <- rlang::list2(...)
@@ -83,14 +88,17 @@ meld <- function(x, ..., remove = TRUE, drop = FALSE) {
         if (! all(equivalent)) {
           msg <- glue::glue("Fields are not equivalent so cannot combine correctly: {new_var}, {old_vars[ov]}.")
           if ( drop ) {
-            warning(msg,"\n  Dropping mismatched rows (drop = TRUE).")
+            logger::log_warn("{glue::glue(msg)}\nDropping mismatched rows (drop = TRUE).")
             x <- dplyr::filter(x, equivalent)
+          } else if (coalesce) {
+            logger::log_warn("{glue::glue(msg)}\nReverting to coalesce (first choice wins).")
           } else {
+            logger::log_warn(msg)
             stop(msg)
           }
         }
         # Meld the two columns together.
-        x <- dplyr::mutate(x, {{ new_var }} := .data[[new_var]] %^% .data[[old_vars[ov]]])
+        x <- dplyr::mutate(x, {{ new_var }} := vec_meld(.data[[new_var]], .data[[old_vars[ov]]], coalesce))
         if ( remove )
           x <- dplyr::select(x, -.data[[old_vars[ov]]])
       }

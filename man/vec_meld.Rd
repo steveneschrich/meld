@@ -7,12 +7,15 @@
 \usage{
 a \%^\% b
 
-vec_meld(a, b)
+vec_meld(a, b, coalesce = FALSE)
 }
 \arguments{
 \item{a}{Vector to meld}
 
 \item{b}{Vector to meld}
+
+\item{coalesce}{Logical. Should the coalesce approach (select the first non-NA) be used? The
+function will warn if there are unequal values, but use the first non-NA.}
 }
 \value{
 A vector melding a and b (see \code{\link[dplyr:coalesce]{dplyr::coalesce()}}).
