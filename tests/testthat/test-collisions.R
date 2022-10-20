@@ -13,7 +13,10 @@ test_that("Melding collisions works", {
   foo <- dplyr::mutate(iris, rn = dplyr::row_number())
   expect_equal(
     meld_collisions(dplyr::left_join(foo,foo, by="rn")),
-    foo
+    # NB: Since the original variables are not in the joined dataset,
+    # they are new. The only remaining variable (rn) becomes first as
+    # a result.
+    dplyr::select(foo, rn, dplyr::everything())
   )
 
 })

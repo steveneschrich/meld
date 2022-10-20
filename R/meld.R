@@ -67,29 +67,32 @@ meld <- function(x, ..., remove = TRUE, drop = FALSE, coalesce=FALSE) {
 
   # The input can be a series of newname = c(oldvalue1, oldvalue2).
   fields <- rlang::list2(...)
+  cols <- colnames(x)
 
   # Fuse each new field (names)
   for (f in names(fields)) {
     new_var <- f
-    old_vars <- intersect(fields[[f]], colnames(x))
+    old_vars <- intersect(fields[[f]], cols)
 
     # To accommodate any number of old variables, we rename the first one
     # Often, it may be a = a if we are coalescing a list. But that does work.
-    if ( length(old_vars) > 0 ) {
-      x<-dplyr::rename(x, {{ new_var }} := .data[[old_vars[1]]])
-    }
+    #if ( length(old_vars) > 0 ) {
+    #  x<-dplyr::rename(x, {{ new_var }} := .data[[old_vars[1]]])
+    #}
+    new_column <- rep(NA, nrow(x))
 
-    if ( length(old_vars) > 1) {
+    if ( length(old_vars) > 0) {
 
       # Then combine all of the other old variable names
-      for ( ov in 2:length(old_vars) ) {
+      for ( ov in 1:length(old_vars) ) {
         # Provide specific warning if field cannot be combined.
-        equivalent <- x[[new_var]] %==% x[[old_vars[ov]]]
+        equivalent <- new_column %==% x[[old_vars[ov]]]
         if (! all(equivalent)) {
           msg <- glue::glue("Fields are not equivalent so cannot combine correctly: {new_var}, {old_vars[ov]}.")
           if ( drop ) {
             logger::log_warn("{glue::glue(msg)}\nDropping mismatched rows (drop = TRUE).")
             x <- dplyr::filter(x, equivalent)
+            new_column <- new_column[equivalent]
           } else if (coalesce) {
             logger::log_warn("{glue::glue(msg)}\nReverting to coalesce (first choice wins).")
           } else {
@@ -98,12 +101,18 @@ meld <- function(x, ..., remove = TRUE, drop = FALSE, coalesce=FALSE) {
           }
         }
         # Meld the two columns together.
-        x <- dplyr::mutate(x, {{ new_var }} := vec_meld(.data[[new_var]], .data[[old_vars[ov]]], coalesce))
+        new_column <- vec_meld(new_column, x[[old_vars[ov]]], coalesce)
+        # Then optionally remove the variable.
         if ( remove )
           x <- dplyr::select(x, -.data[[old_vars[ov]]])
+
       }
     }
+    x <- dplyr::mutate(x, {{new_var}} := new_column)
   }
+
+  # This selects the original columns in the original order.
+  x <- dplyr::select(x, dplyr::any_of(cols), names(fields))
 
   x
 }
